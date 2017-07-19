@@ -1,45 +1,38 @@
-# Caffe
+# AutoDIAL Caffe Implementation
 
-[![Build Status](https://travis-ci.org/BVLC/caffe.svg?branch=master)](https://travis-ci.org/BVLC/caffe)
-[![License](https://img.shields.io/badge/license-BSD-blue.svg)](LICENSE)
+This is the official Caffe implementation of [AutoDIAL: Automatic DomaIn Alignment Layers](https://arxiv.org/pdf/1704.08082.pdf)
 
-Caffe is a deep learning framework made with expression, speed, and modularity in mind.
-It is developed by Berkeley AI Research ([BAIR](http://bair.berkeley.edu))/The Berkeley Vision and Learning Center (BVLC) and community contributors.
+This code is forked from [BVLC/caffe](https://github.com/BVLC/caffe).
+For any issue not directly related to our components (listed in the following), please refer to the upstream repository.
 
-Check out the [project site](http://caffe.berkeleyvision.org) for all the details like
+## Contents
 
-- [DIY Deep Learning for Vision with Caffe](https://docs.google.com/presentation/d/1UeKXVgRvvxg9OUdh_UiC5G71UMscNPlvArsWER41PsU/edit#slide=id.p)
-- [Tutorial Documentation](http://caffe.berkeleyvision.org/tutorial/)
-- [BAIR reference models](http://caffe.berkeleyvision.org/model_zoo.html) and the [community model zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo)
-- [Installation instructions](http://caffe.berkeleyvision.org/installation.html)
+We provide two additional layers and some example configuration files to train AlexNet-DIAL on the Office-31 dataset:
 
-and step-by-step examples.
+* DialLayer: implements the AutoDIAL layer described in the paper.
+* EntropyLossLayer: a simple entropy loss implementation with integrated softmax computation.
+* AlexNet-DIAL: model and train *.prototxt files to train AlexNet-DIAL on Office-31 are available under models/alexnet_dial. They assume the Office-31 images are formatted in a way that is compatible with Caffe's ImageDataLayer.
 
-## Custom distributions
+### DialLayer
 
- - [Intel Caffe](https://github.com/BVLC/caffe/tree/intel) (Optimized for CPU and support for multi-node), in particular Xeon processors (HSW, BDW, Xeon Phi).
-- [OpenCL Caffe](https://github.com/BVLC/caffe/tree/opencl) e.g. for AMD or Intel devices.
-- [Windows Caffe](https://github.com/BVLC/caffe/tree/windows)
+At training time, DialLayer assumes that images / samples from the source and target sets are collected in the same batch, with the source data stored in the first `n` elements and the target data stored in the remaining `N - n` elements.
+The splitting point `n` can be freely configured by the user.
+Similarly to BatchNormLayer, DialLayer computes on-line estimates of the input's mean and standard deviation, but it does so separately for the source and target sets.
+At test time, DialLayer assumes that the batches contain samples from a single set, and uses the same (configurable) statistics to normalize all inputs.
 
-## Community
+DialLayer accepts all of BatchNormLayer's parameters (`use_global_stats`, `moving_average_fraction`, `eps`), with the addition of:
 
-[![Join the chat at https://gitter.im/BVLC/caffe](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/BVLC/caffe?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+* `slice_point`: the batch index `n` of the first target sample.
+* `test_stats`, one of `SOURCE` or `TARGET`: determines which of the stored statistics are used to normalize the input at test time.
+* `weight_filler`: a filler to initialize `alpha` (see the paper).
 
-Please join the [caffe-users group](https://groups.google.com/forum/#!forum/caffe-users) or [gitter chat](https://gitter.im/BVLC/caffe) to ask questions and talk about methods and models.
-Framework development discussions and thorough bug reports are collected on [Issues](https://github.com/BVLC/caffe/issues).
+## Abstract and citation
 
-Happy brewing!
+Classifiers trained on given databases perform poorly when tested on data acquired in different settings. This is explained in domain adaptation through a shift among distributions of the source and target domains. Attempts to align them have traditionally resulted in works reducing the domain shift by introducing appropriate loss terms, measuring the discrepancies between source and target distributions, in the objective function. Here we take a different route, proposing to align the learned representations by embedding in any given network specific Domain Alignment Layers, designed to match the source and target feature distributions to a reference one. Opposite to previous works which define a priori in which layers adaptation should be performed, our method is able to automatically learn the degree of feature alignment required at different levels of the deep network. Thorough experiments on different public benchmarks, in the unsupervised setting, confirm the power of our approach.
 
-## License and Citation
-
-Caffe is released under the [BSD 2-Clause license](https://github.com/BVLC/caffe/blob/master/LICENSE).
-The BAIR/BVLC reference models are released for unrestricted use.
-
-Please cite Caffe in your publications if it helps your research:
-
-    @article{jia2014caffe,
-      Author = {Jia, Yangqing and Shelhamer, Evan and Donahue, Jeff and Karayev, Sergey and Long, Jonathan and Girshick, Ross and Guadarrama, Sergio and Darrell, Trevor},
-      Journal = {arXiv preprint arXiv:1408.5093},
-      Title = {Caffe: Convolutional Architecture for Fast Feature Embedding},
-      Year = {2014}
+    @inproceedings{carlucci2017autodial,
+      title={AutoDIAL: Automatic DomaIn Alignment Layers},
+      author={Carlucci, Fabio Maria and Porzi, Lorenzo and Caputo, Barbara and Ricci, Elisa and Rota Bul{\`o}, Samuel},
+      booktitle={International Conference on Computer Vision},
+      year={2017}
     }
